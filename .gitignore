@@ -8,3 +8,7 @@ examples/*/*
 !examples/*/.env
 !examples/*/.mautic_env
 !examples/*/docker-compose.yml
+
+uct-mautic-rabbitmq-worker/data/**/*
+uct-mautic-rabbitmq-worker/mautic/**/*
+uct-mautic-rabbitmq-worker/cron/**/*
