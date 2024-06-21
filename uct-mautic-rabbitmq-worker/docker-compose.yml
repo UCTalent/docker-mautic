@@ -7,10 +7,12 @@ x-mautic-volumes:
   - ./mautic/media/files:/var/www/html/docroot/media/files:z
   - ./mautic/media/images:/var/www/html/docroot/media/images:z
   - ./cron:/opt/mautic/cron:z
+  - mautic-docroot:/var/www/html/docroot:z
 
 services:
   db:
     image: mysql:8.0
+    restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
@@ -37,11 +39,12 @@ services:
       - default
 
   mautic_web:
-    image: mautic/mautic:5-apache
+    image: mautic/mautic:5.1-fpm
+    restart: unless-stopped
     links:
       - db:mysql
     ports:
-      - 8003:80
+      - 9000:9000
     volumes: *mautic-volumes
 
     environment:
@@ -50,7 +53,7 @@ services:
     env_file:
       - .mautic_env
     healthcheck:
-      test: curl http://localhost
+      test: cgi-fcgi -bind -connect 127.0.0.1:9000
       start_period: 5s
       interval: 5s
       timeout: 5s
@@ -62,7 +65,8 @@ services:
       - default
 
   mautic_cron:
-    image: mautic/mautic:5-apache
+    image: mautic/mautic:5.1-fpm
+    restart: unless-stopped
     links:
       - db:mysql
     volumes: *mautic-volumes
@@ -77,7 +81,8 @@ services:
       - default
 
   mautic_worker:
-    image: mautic/mautic:5-apache
+    image: mautic/mautic:5.1-fpm
+    restart: unless-stopped
     links:
       - db:mysql
     volumes: *mautic-volumes
@@ -91,9 +96,26 @@ services:
     networks:
       - default
 
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./data/caddy/data:/data
+      - ./data/caddy/config:/config
+      - mautic-docroot:/var/www/html/docroot:z
+    depends_on:
+      mautic_web:
+        condition: service_healthy
+
 volumes:
   mysql-data:
   rabbitmq-data:
+  mautic-docroot:
 
 networks:
   default:

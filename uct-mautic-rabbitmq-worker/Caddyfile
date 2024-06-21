@@ -1,0 +1,25 @@
+mautic.uctalent.dev {
+    root * /var/www/html/docroot
+
+    php_fastcgi mautic_web:9000
+
+    file_server
+
+    try_files {path} {path}/ /index.php?{query}
+    
+    log {
+        output file /var/log/caddy/mautic.access.log {
+            roll_size 10MB
+            roll_keep 5
+            roll_keep_for 48h
+        }
+    }
+
+    handle_errors {
+        @500 {
+            expression {http.error.status_code} == 500
+        }
+        rewrite @500 /500.html
+        file_server
+    }
+}
